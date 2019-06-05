@@ -34,7 +34,7 @@ from PIL import Image, ImageDraw
 
 # this is the size of ONE of our matrixes. 
 matrix_rows = 64 
-matrix_columns = 32 
+matrix_columns = 64 
 
 # how many matrixes stacked horizontally and vertically 
 matrix_horizontal = 1 
@@ -62,6 +62,13 @@ matrix = RGBMatrix(options = options)
 # Update this comment!!!
 ###################################################
 
+black = (0,0,0)
+red = (255,0,0)
+green = (0,255,0)
+blue = (0,0,255)
+
+wall_color = red 
+
 # start positions:  p1 at the top middle going down, p2 at bottom middle going up.
 p1_start_x = total_columns / 2
 p1_start_y = 5
@@ -70,14 +77,12 @@ p2_start_y = total_rows - p1_start_y
 
 player1 = [p1_start_x,p1_start_y]
 p1_dir = "down"
-p1_color = (0,255,0)
+p1_color = green 
 
 player2 = [p2_start_x,p2_start_y]
 p2_dir = "up"
-p2_color = (0,0,255)
+p2_color = blue 
 
-wall_color = (255,0,0)
-black = (0,0,0)
 
 # The collision matrix is a 2d matrix of our full playfield size.
 # Zero means there's nothing in that slot.
@@ -137,12 +142,43 @@ def init_players():
   temp_draw.rectangle((0,0,0,0), outline=p2_color, fill=p2_color)
   matrix.SetImage(temp_image, p2_start_x, p2_start_y)
 
+####################################################
+# show_crash() 
+####################################################
+def show_crash(crash_x, crash_y):
+  
+  crash_color = (255,0,0)
+  crash_fill = (255,255,255)
+  for crashloop in range(3,13,2):
+    ellipse_offset = (crashloop-1)/2
+    temp_image = Image.new("RGB", (crashloop,crashloop))
+    temp_draw = ImageDraw.Draw(temp_image)
+    temp_draw.ellipse((0,0,crashloop-1,crashloop-1), outline=crash_color, fill=crash_fill)
+    matrix.SetImage(temp_image, crash_x-ellipse_offset,crash_y-ellipse_offset)
+    time.sleep(.1)
+
+###################################
+#  display_text()
+###################################
+def display_text(my_text, text_color, delay):
+    temp_image = Image.new("RGB", (total_columns, total_rows))
+    temp_draw = ImageDraw.Draw(temp_image)
+    temp_draw.text((0,0),my_text, fill=text_color)
+    matrix.SetImage(temp_image,0,0)
+    time.sleep(delay)
+
 ###################################
 # Main loop 
 ###################################
+display_text("Get Ready",red, 3)
+display_text("3",red,1)
+display_text("2",red,1)
+display_text("1",red,1)
+display_text("GO!!!",red,1)
+
 init_walls()
 init_players()
-time.sleep(3)
+#time.sleep(3)
 
 ################################
 #  Initialize keyboard reading. 
@@ -250,14 +286,20 @@ while True:
 
   if (p1_crash & p2_crash):
     print "Tie game!!!"
+    show_crash(p1_new_x,p1_new_y)
+    display_text("TIE!", red, 3)
     break;
 
   if (p1_crash):
     print "Player 2 wins!"
+    show_crash(p1_new_x,p1_new_y)
+    display_text("Player 2\nWins!",blue,3)
     break;
 
   if (p2_crash):
     print "Player 1 wins!"
+    show_crash(p2_new_x,p2_new_y)
+    display_text("Player 1\nWins!",green,3)
     break;
 
   time.sleep(speed_delay)
