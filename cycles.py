@@ -34,7 +34,7 @@ from PIL import Image, ImageDraw
 
 # this is the size of ONE of our matrixes. 
 matrix_rows = 64 
-matrix_columns = 64 
+matrix_columns = 32 
 
 # how many matrixes stacked horizontally and vertically 
 matrix_horizontal = 1 
@@ -83,7 +83,7 @@ black = (0,0,0)
 # Zero means there's nothing in that slot.
 # One means you can't move there.
 collision = []
-collision = [[0] * total_columns for i in range(total_rows)]
+collision = [[0] * total_rows for i in range(total_columns)]
 
 # initial speed is set with a delay between moving of .1
 speed_delay = .14
@@ -101,13 +101,13 @@ def init_walls():
 
   #top and bottom boarders
   for x in range(total_columns):
-    collision[0][x] = 1
-    collision[total_columns-1][x] = 1
+    collision[x][0] = 1
+    collision[x][total_rows-1] = 1
 
   #left and right boarders
   for y in range(total_rows):
-    collision[y][0] = 1
-    collision[y][total_rows-1] = 1
+    collision[0][y]= 1
+    collision[total_columns-1][y] = 1
 
   #now draw the box
   temp_image = Image.new("RGB", (total_columns, total_rows))
@@ -173,6 +173,9 @@ p2_image = Image.new("RGB", (1,1))
 p2_draw = ImageDraw.Draw(p2_image)
 p2_draw.rectangle((0,0,0,0), outline=p2_color, fill=p2_color)
 
+p1_crash = False
+p2_crash = False
+
 while True:
   key = getch_noblock()
 
@@ -186,7 +189,15 @@ while True:
   if (key == 'l') & (p1_dir != "left"):
     p1_dir = "right" 
    
-  #p2 direction check goes here
+  # check for player 2 direction changes, but don't let them back into themselves
+  if (key == 'w') & (p2_dir != "down"):
+    p2_dir = "up" 
+  if (key == 's') & (p2_dir != "up"):
+    p2_dir = "down" 
+  if (key == 'a') & (p2_dir != "right"):
+    p2_dir = "left" 
+  if (key == 'd') & (p2_dir != "left"):
+    p2_dir = "right" 
 
   # The engine!
   # If both p1 and p2 are going to hit something, it's a draw.
@@ -208,14 +219,46 @@ while True:
   # will the new spot for p1 cause a crash?
   if (collision[p1_new_x][p1_new_y] == 1):
     print "Player 1 crashes!!!"
-    print "direction", p1_dir
-    break
+    p1_crash = True
   else:
     collision[p1_new_x][p1_new_y] = 1
     player1[0] = p1_new_x
     player1[1] = p1_new_y
     matrix.SetImage(p1_image, p1_new_x, p1_new_y)
 
+  #figure out next spot for p2
+  p2_new_x = player2[0]
+  p2_new_y = player2[1]
+  if (p2_dir == "up"):
+    p2_new_y = p2_new_y - 1
+  if (p2_dir == "down"):
+    p2_new_y = p2_new_y + 1
+  if (p2_dir == "left"):
+    p2_new_x = p2_new_x - 1
+  if (p2_dir == "right"):
+    p2_new_x = p2_new_x + 1
+
+  # will the new spot for p2 cause a crash?
+  if (collision[p2_new_x][p2_new_y] == 1):
+    print "Player 2 crashes!!!"
+    p2_crash = True
+  else:
+    collision[p2_new_x][p2_new_y] = 1
+    player2[0] = p2_new_x
+    player2[1] = p2_new_y
+    matrix.SetImage(p2_image, p2_new_x, p2_new_y)
+
+  if (p1_crash & p2_crash):
+    print "Tie game!!!"
+    break;
+
+  if (p1_crash):
+    print "Player 2 wins!"
+    break;
+
+  if (p2_crash):
+    print "Player 1 wins!"
+    break;
 
   time.sleep(speed_delay)
 
