@@ -1,7 +1,16 @@
 from evdev import InputDevice, categorize, ecodes
 
-gamepad0 = InputDevice('/dev/input/event0')
-gamepad1 = InputDevice('/dev/input/event1')
+try:
+  gamepad0 = InputDevice('/dev/input/event0')
+except:
+  print("First Gamepad not connected")
+  exit(1)
+
+try:
+  gamepad1 = InputDevice('/dev/input/event1')
+except:
+  print("Second Gamepad not connected")
+  exit(1)
 
 #################################
 # gamepad_parse
