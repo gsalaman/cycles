@@ -77,7 +77,7 @@ p2_color = blue
 collision = []
 collision = [[0] * total_rows for i in range(total_columns)]
 
-speed_delay = .14
+speed_delay = .1
 
 ###################################
 # init_walls()
@@ -137,7 +137,9 @@ def show_crash(crash_x, crash_y):
     temp_draw = ImageDraw.Draw(temp_image)
     temp_draw.ellipse((0,0,crashloop-1,crashloop-1), outline=crash_color, fill=crash_fill)
     matrix.SetImage(temp_image, crash_x-ellipse_offset,crash_y-ellipse_offset)
-    time.sleep(.1)
+    time.sleep(.15)
+
+  time.sleep(1)
 
 ###################################
 #  display_text()
@@ -173,29 +175,50 @@ p2_draw.rectangle((0,0,0,0), outline=p2_color, fill=p2_color)
 p1_crash = False
 p2_crash = False
 
+last_update_time = datetime.now()
+
 while True:
+
+  dir_pressed = False
+  current_time = datetime.now()
+  deltaT = current_time - last_update_time
 
   # check for player 1 dir changes, but don't let them back into themselves
   p1_input = gamepad0_read_nonblocking()
   if (p1_input == "D-up") & (p1_dir != "down"):
     p1_dir = "up" 
+    dir_pressed = True
   if (p1_input == "D-down") & (p1_dir != "up"):
     p1_dir = "down" 
+    dir_pressed = True
   if (p1_input == "D-left") & (p1_dir != "right"):
     p1_dir = "left" 
+    dir_pressed = True
   if (p1_input == "D-right") & (p1_dir != "left"):
     p1_dir = "right" 
+    dir_pressed = True
    
   # check for player 2 dir changes, but don't let them back into themselves
   p2_input = gamepad1_read_nonblocking()
   if (p2_input == "D-up") & (p2_dir != "down"):
     p2_dir = "up" 
+    dir_pressed = True
   if (p2_input == "D-down") & (p2_dir != "up"):
     p2_dir = "down" 
+    dir_pressed = True
   if (p2_input == "D-left") & (p2_dir != "right"):
     p2_dir = "left" 
+    dir_pressed = True
   if (p2_input == "D-right") & (p2_dir != "left"):
     p2_dir = "right" 
+    dir_pressed = True
+
+  # Should probably use positive logic here to update the current direciton,
+  # but instead, I'm using the continue construct.
+  if ((deltaT.total_seconds() < speed_delay) & (dir_pressed == False)):
+     continue
+
+  last_update_time = current_time
 
   # The engine!
   # If both p1 and p2 are going to hit something, it's a draw.
