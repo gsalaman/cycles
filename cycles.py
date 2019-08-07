@@ -1,30 +1,17 @@
 #################################################
 # cycles.py - tron style light cycle game
 #
-# First iteration:  two players (green and blue).
-# Use same keyboard.  All tracks persistent.
+# Two players (green and blue).
+# input from dual gamepads
 # Lose when you hit something.
 ################################################# 
 
-###############################
-#  Imports for reading keyboard
-##############################
-import sys, os
-import termios, fcntl
-
-# used to slow down our main loop
 import time
+from datetime import datetime
 
 import random
 
-##################################
-# Non-blocking character read function.
-#################################
-def getch_noblock():
-  try:
-    return sys.stdin.read()
-  except (IOError, TypeError) as e:
-    return None
+from dual_gamepad import gamepad0_read_nonblocking, gamepad1_read_nonblocking
 
 ###################################
 # Graphics imports, constants and structures
@@ -50,8 +37,8 @@ options.chain_length = matrix_horizontal
 options.parallel = matrix_vertical 
 
 #options.hardware_mapping = 'adafruit-hat-pwm' 
-options.hardware_mapping = 'adafruit-hat'  # If you have an Adafruit HAT: 'adafruit-hat'
-#options.hardware_mapping = 'regular'  
+#options.hardware_mapping = 'adafruit-hat'  # If you have an Adafruit HAT: 'adafruit-hat'
+options.hardware_mapping = 'regular'  
 
 options.gpio_slowdown = 2
 
@@ -90,12 +77,7 @@ p2_color = blue
 collision = []
 collision = [[0] * total_rows for i in range(total_columns)]
 
-# initial speed is set with a delay between moving of .1
 speed_delay = .14
-
-
-#def print_updates():
-#  print "apples hit=", score, "wormLength =", wormStartLength, "speed_delay =", speed_delay
 
 ###################################
 # init_walls()
@@ -180,27 +162,6 @@ init_walls()
 init_players()
 #time.sleep(3)
 
-################################
-#  Initialize keyboard reading. 
-#  Save the old terminal configuration, and
-#  tweak the terminal so that it doesn't echo, and doesn't block.
-################################
-fd = sys.stdin.fileno()
-newattr = termios.tcgetattr(fd)
-
-oldterm = termios.tcgetattr(fd)
-oldflags = fcntl.fcntl(fd, fcntl.F_GETFL)
-
-newattr[3] = newattr[3] & ~termios.ICANON
-newattr[3] = newattr[3] & ~termios.ECHO
-
-fcntl.fcntl(fd, fcntl.F_SETFL, oldflags | os.O_NONBLOCK)
-
-termios.tcsetattr(fd, termios.TCSANOW, newattr)
-
-print "Player 1 controls:  i=up, j=left, k=down, l=right"
-print "Player 2 controls:  w=up, a=left, s=down, d=right"
-
 p1_image = Image.new("RGB", (1,1))
 p1_draw = ImageDraw.Draw(p1_image)
 p1_draw.rectangle((0,0,0,0), outline=p1_color, fill=p1_color)
@@ -213,32 +174,34 @@ p1_crash = False
 p2_crash = False
 
 while True:
-  key = getch_noblock()
 
-  # check for player 1 direction changes, but don't let them back into themselves
-  if (key == 'i') & (p1_dir != "down"):
+  # check for player 1 dir changes, but don't let them back into themselves
+  p1_input = gamepad0_read_nonblocking()
+  if (p1_input == "D-up") & (p1_dir != "down"):
     p1_dir = "up" 
-  if (key == 'k') & (p1_dir != "up"):
+  if (p1_input == "D-down") & (p1_dir != "up"):
     p1_dir = "down" 
-  if (key == 'j') & (p1_dir != "right"):
+  if (p1_input == "D-left") & (p1_dir != "right"):
     p1_dir = "left" 
-  if (key == 'l') & (p1_dir != "left"):
+  if (p1_input == "D-right") & (p1_dir != "left"):
     p1_dir = "right" 
    
-  # check for player 2 direction changes, but don't let them back into themselves
-  if (key == 'w') & (p2_dir != "down"):
+  # check for player 2 dir changes, but don't let them back into themselves
+  p2_input = gamepad1_read_nonblocking()
+  if (p2_input == "D-up") & (p2_dir != "down"):
     p2_dir = "up" 
-  if (key == 's') & (p2_dir != "up"):
+  if (p2_input == "D-down") & (p2_dir != "up"):
     p2_dir = "down" 
-  if (key == 'a') & (p2_dir != "right"):
+  if (p2_input == "D-left") & (p2_dir != "right"):
     p2_dir = "left" 
-  if (key == 'd') & (p2_dir != "left"):
+  if (p2_input == "D-right") & (p2_dir != "left"):
     p2_dir = "right" 
 
   # The engine!
   # If both p1 and p2 are going to hit something, it's a draw.
   # If only p1 or p2 hits something, it's a win for the other one.
-  # if neither are going to hit anything, update the collision matrix and add the new "dot"
+  # if neither are going to hit anything, update the collision matrix 
+  # and add the new "dot"
 
   #figure out next spot for p1
   p1_new_x = player1[0]
@@ -304,10 +267,3 @@ while True:
 
   time.sleep(speed_delay)
 
-
-###################################
-# Reset the terminal on exit
-###################################
-termios.tcsetattr(fd, termios.TCSANOW, oldterm)
-
-fcntl.fcntl(fd, fcntl.F_SETFL, oldflags)
