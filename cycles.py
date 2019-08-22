@@ -35,18 +35,13 @@ options.rows = matrix_rows
 options.cols = matrix_columns 
 options.chain_length = matrix_horizontal
 options.parallel = matrix_vertical 
-
-#options.hardware_mapping = 'adafruit-hat-pwm' 
-#options.hardware_mapping = 'adafruit-hat'  # If you have an Adafruit HAT: 'adafruit-hat'
 options.hardware_mapping = 'regular'  
-
-options.gpio_slowdown = 2
+#options.gpio_slowdown = 2
 
 matrix = RGBMatrix(options = options)
 
 ###################################################
-#Creates global data
-# Update this comment!!!
+# Global data
 ###################################################
 
 black = (0,0,0)
@@ -56,18 +51,20 @@ blue = (0,0,255)
 
 wall_color = red 
 
-# start positions:  p1 at the top middle going down, p2 at bottom middle going up.
+# All player positions are the top-left corner of our player icon.
+
+# start positions:  
+#    p1 at the top middle going down, p2 at bottom middle going up.
 p1_start_x = total_columns / 2
 p1_start_y = 5
 p2_start_x = p1_start_x
 p2_start_y = total_rows - p1_start_y
 
 player1 = [p1_start_x,p1_start_y]
-p1_color = green 
-
 player2 = [p2_start_x,p2_start_y]
-p2_color = blue 
 
+# each cycle is 5 pixels. 
+cycle_size = 5
 
 # The collision matrix is a 2d matrix of our full playfield size.
 # Zero means there's nothing in that slot.
@@ -130,9 +127,6 @@ def init_players():
   player1 = [p1_start_x,p1_start_y]
   player2 = [p2_start_x,p2_start_y]
 
-  collision[p1_start_x][p1_start_y] = 1
-  collision[p2_start_x][p2_start_y] = 1
-
   temp_image = Image.new("RGB", (1,1))
   temp_draw = ImageDraw.Draw(temp_image)
   temp_draw.rectangle((0,0,0,0), outline=p1_color, fill=p1_color)
@@ -167,10 +161,80 @@ def display_text(my_text, text_color, delay):
     matrix.SetImage(temp_image,0,0)
     time.sleep(delay)
 
+
+###################################
+# collision_check 
+#    Note x and y are the postion *before* moving.
+###################################
+def collision_check(x, y, dir):
+  global collision
+  global cycle_size
+
+  if dir == "up":
+    # need to check the middle three pixels above our icon reference
+    if (collision[x+1][y-1] == 1) or (collision[x+2][y-1] == 1) or (collision[x+3][y-1] == 1):
+      return True
+    else:
+      return False
+
+  if dir == "down":
+    # need to check middle three pixels below our icon reference
+    if (collision[x+1][y+cycle_size] == 1) or (collision[x+2][y+cycle_size] == 1) or (collision[x+3][y+cycle_size] == 1):
+      return True
+    else: 
+      return False
+
+  if dir == "right":
+    # need to check middle three pixels to the right of our reference
+    if (collision[x+cycle_size][y+1] == 1) or (collision[x+cycle_size][y+2] == 1) or (collision[x+cycle_size][y+3] == 1):
+      return True
+    else:
+      return False
+    
+  if dir == "left":
+    # need to check middle three pixels to the left of our reference
+    if (collision[x-1][y+1] == 1) or (collision[x-1][y+2] == 1) or (collision[x-1][y+3] == 1):
+      return True
+    else:
+      return False
+
+  # if we got here, someone passed an invalid direciton!!!
+  print("Invalid dir in collision_check")
+  exit(0)
+ 
+###################################
+# calc_wall_spot 
+#   This function takes a given player's x and y postion (the top-left corner
+#   of their icon) and their direction, and calclualtes the absolute position
+#   of the resultant new "wall" block, returned as a tuple.
+###################################
+def calc_wall_spot(x,y,dir):
+  global cycle_size
+  
+  if dir == "up":
+    wall_x = x+2
+    wall_y = y+cycle_size-1
+  elif dir == "down":
+    wall_x = x+2
+    wall_y = y
+  elif dir == "left":
+    wall_x = x
+    wall_y = y+2
+  elif dir == "right":
+    wall_x = x+cycle_size-1
+    wall_y = y+2
+  else:
+    print("Invalid dir in calc_wall_spot")
+    exit(0)
+    
+  return( (wall_x,wall_y) )
+  
 ###################################
 # play_game 
 ###################################
 def play_game():
+  global cycle_size
+
   display_text("Get Ready",red, 3)
   display_text("3",red,1)
   display_text("2",red,1)
@@ -180,17 +244,43 @@ def play_game():
   reset_collision()
   init_walls()
   init_players()
- 
+  
+  wheel_color = (0x2F,0x4F,0x4F)
+  p1_body_color = (0,0x64,0)
+  p2_body_color = (0,0,0x64)
+
+  p1_image = Image.new("RGB", (cycle_size,cycle_size))
+  p1_draw = ImageDraw.Draw(p1_image)
+  p1_draw.rectangle( (1,0,1,1), outline = wheel_color )
+  p1_draw.rectangle( (3,0,3,1), outline = wheel_color)
+  p1_draw.rectangle( (1,3,1,4), outline = wheel_color)
+  p1_draw.rectangle( (3,3,3,4), outline = wheel_color)
+  p1_draw.rectangle( (2,0,2,4), outline = p1_body_color)
   p1_dir = "down"
+
+  p2_image = Image.new("RGB", (cycle_size,cycle_size))
+  p2_draw = ImageDraw.Draw(p2_image)
+  p2_draw.rectangle( (1,0,1,1), outline = wheel_color )
+  p2_draw.rectangle( (3,0,3,1), outline = wheel_color)
+  p2_draw.rectangle( (1,3,1,4), outline = wheel_color)
+  p2_draw.rectangle( (3,3,3,4), outline = wheel_color)
+  p2_draw.rectangle( (2,0,2,4), outline = p2_body_color)
   p2_dir = "up"
 
-  p1_image = Image.new("RGB", (1,1))
-  p1_draw = ImageDraw.Draw(p1_image)
-  p1_draw.rectangle((0,0,0,0), outline=p1_color, fill=p1_color)
+  p1_wall_color = (0,255,0)
+  p2_wall_color = (0,0,255)
 
-  p2_image = Image.new("RGB", (1,1))
-  p2_draw = ImageDraw.Draw(p2_image)
-  p2_draw.rectangle((0,0,0,0), outline=p2_color, fill=p2_color)
+  p1_wall_image = Image.new("RGB", (1,1))
+  p1_wall_draw = ImageDraw.Draw(p1_wall_image)
+  p1_wall_draw.rectangle((0,0,1,1), outline = p1_wall_color)
+
+  p2_wall_image = Image.new("RGB", (1,1))
+  p2_wall_draw = ImageDraw.Draw(p2_wall_image)
+  p1_wall_draw.rectangle((0,0,1,1), outline = p2_wall_color)
+
+  cycle_erase_image = Image.new("RGB", (cycle_size, cycle_size))
+  cycle_erase_draw = ImageDraw.Draw(cycle_erase_image)
+  cycle_erase_draw.rectangle((0,0,cycle_size-1,cycle_size-1),outline=(0,0,0),fill=(0,0,0))
 
   p1_crash = False
   p2_crash = False
@@ -259,14 +349,40 @@ def play_game():
       p1_new_x = p1_new_x + 1
 
     # will the new spot for p1 cause a crash?
-    if (collision[p1_new_x][p1_new_y] == 1):
+    if (collision_check(player1[0],player1[1],p1_dir)): 
       print "Player 1 crashes!!!"
       p1_crash = True
     else:
-      collision[p1_new_x][p1_new_y] = 1
+      # erase the old icon
+      matrix.SetImage(cycle_erase_image,player1[0], player1[1])
+  
+      # where does the new wall go?
+      new_wall = calc_wall_spot(player1[0],player1[y],p1_dir)
+     
+      # update the collision matrix with our new wall spot
+      collision[new_wall[0]][new_wall[1]] = 1
+  
+      # draw that new wall spot
+      matrix.SetImage(p1_wall_image,new_wall[0],new_wall[1])
+  
+      # draw the new cycle, rotating properly for the new direction
+      if p1_dir == "up":
+        rotated_image = p1_image
+      elif p1_dir == "down":
+        #not stricly necessary yet, but code present in case we change our icon.
+        rotated_image = p1_image.rotate(180)
+      elif p1_dir == "left":
+        rotated_image = p1_image.rotate(270)
+      elif p1_dir == "right":
+        rotated_image = p1.image.rotate(90)
+      else:
+        print("bad dir in rotate p1")
+        exit(0)
+      matrix.SetImage(p1_new_x, p1_new_y, p1_cycle)
+
+      # finally, update our player position.
       player1[0] = p1_new_x
       player1[1] = p1_new_y
-      matrix.SetImage(p1_image, p1_new_x, p1_new_y)
 
     #figure out next spot for p2
     p2_new_x = player2[0]
@@ -281,14 +397,40 @@ def play_game():
       p2_new_x = p2_new_x + 1
 
     # will the new spot for p2 cause a crash?
-    if (collision[p2_new_x][p2_new_y] == 1):
+    if (collision_check(player2[0],player2[1],p2_dir)): 
       print "Player 2 crashes!!!"
       p2_crash = True
     else:
-      collision[p2_new_x][p2_new_y] = 1
+      # erase the old icon
+      matrix.SetImage(cycle_erase_image,player2[0], player2[1])
+  
+      # where does the new wall go?
+      new_wall = calc_wall_spot(player2[0],player2[y],p2_dir)
+     
+      # update the collision matrix with our new wall spot
+      collision[new_wall[0]][new_wall[1]] = 1
+  
+      # draw that new wall spot
+      matrix.SetImage(p2_wall_image,new_wall[0],new_wall[1])
+  
+      # draw the new cycle, rotating properly for the new direction
+      if p2_dir == "up":
+        rotated_image = p2_image
+      elif p2_dir == "down":
+        #not stricly necessary yet, but code present in case we change our icon.
+        rotated_image = p2_image.rotate(180)
+      elif p2_dir == "left":
+        rotated_image = p2_image.rotate(270)
+      elif p2_dir == "right":
+        rotated_image = p2.image.rotate(90)
+      else:
+        print("bad dir in rotate p2")
+        exit(0)
+      matrix.SetImage(p2_new_x, p2_new_y, p2_cycle)
+
+      # finally, update our player position.
       player2[0] = p2_new_x
       player2[1] = p2_new_y
-      matrix.SetImage(p2_image, p2_new_x, p2_new_y)
 
     if (p1_crash & p2_crash):
       print "Tie game!!!"
