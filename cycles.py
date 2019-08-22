@@ -20,12 +20,12 @@ from rgbmatrix import RGBMatrix, RGBMatrixOptions
 from PIL import Image, ImageDraw
 
 # this is the size of ONE of our matrixes. 
-matrix_rows = 64 
-matrix_columns = 64 
+matrix_rows = 32 
+matrix_columns = 32 
 
 # how many matrixes stacked horizontally and vertically 
-matrix_horizontal = 1 
-matrix_vertical = 1
+matrix_horizontal = 5 
+matrix_vertical = 3
 
 total_rows = matrix_rows * matrix_vertical
 total_columns = matrix_columns * matrix_horizontal
@@ -127,12 +127,14 @@ def init_players():
   player1 = [p1_start_x,p1_start_y]
   player2 = [p2_start_x,p2_start_y]
 
+'''
   temp_image = Image.new("RGB", (1,1))
   temp_draw = ImageDraw.Draw(temp_image)
   temp_draw.rectangle((0,0,0,0), outline=p1_color, fill=p1_color)
   matrix.SetImage(temp_image, p1_start_x, p1_start_y)
   temp_draw.rectangle((0,0,0,0), outline=p2_color, fill=p2_color)
   matrix.SetImage(temp_image, p2_start_x, p2_start_y)
+'''
 
 ####################################################
 # show_crash() 
@@ -357,7 +359,7 @@ def play_game():
       matrix.SetImage(cycle_erase_image,player1[0], player1[1])
   
       # where does the new wall go?
-      new_wall = calc_wall_spot(player1[0],player1[y],p1_dir)
+      new_wall = calc_wall_spot(player1[0],player1[1],p1_dir)
      
       # update the collision matrix with our new wall spot
       collision[new_wall[0]][new_wall[1]] = 1
@@ -378,7 +380,7 @@ def play_game():
       else:
         print("bad dir in rotate p1")
         exit(0)
-      matrix.SetImage(p1_new_x, p1_new_y, p1_cycle)
+      matrix.SetImage(p1_image, p1_new_x, p1_new_y)
 
       # finally, update our player position.
       player1[0] = p1_new_x
@@ -405,7 +407,7 @@ def play_game():
       matrix.SetImage(cycle_erase_image,player2[0], player2[1])
   
       # where does the new wall go?
-      new_wall = calc_wall_spot(player2[0],player2[y],p2_dir)
+      new_wall = calc_wall_spot(player2[0],player2[1],p2_dir)
      
       # update the collision matrix with our new wall spot
       collision[new_wall[0]][new_wall[1]] = 1
@@ -426,7 +428,7 @@ def play_game():
       else:
         print("bad dir in rotate p2")
         exit(0)
-      matrix.SetImage(p2_new_x, p2_new_y, p2_cycle)
+      matrix.SetImage(p2_image, p2_new_x, p2_new_y)
 
       # finally, update our player position.
       player2[0] = p2_new_x
